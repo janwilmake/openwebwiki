@@ -1,0 +1,223 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OpenWebWiki API",
+    "version": "1.0.0",
+    "description": "Task API with public search and knowledge index"
+  },
+  "paths": {
+    "/search/{query}": {
+      "get": {
+        "operationId": "searchTasks",
+        "summary": "Search public tasks",
+        "description": "Search through completed tasks with high confidence ratings by keywords, title, or category",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "path",
+            "required": true,
+            "description": "Search query string",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "query": {
+                      "type": "string"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "title": { "type": "string" },
+                          "slug": { "type": "string" },
+                          "keywords": { "type": "string" },
+                          "category": { "type": "string" },
+                          "result_content": { "type": "string" },
+                          "confidence": { "type": "string" },
+                          "createdAt": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/{identifier}": {
+      "get": {
+        "operationId": "getTask",
+        "summary": "Get task by ID or slug",
+        "description": "Retrieve a completed task by its ID or slug",
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "description": "Task ID or slug",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "title": { "type": "string" },
+                    "slug": { "type": "string" },
+                    "keywords": { "type": "string" },
+                    "category": { "type": "string" },
+                    "processor": { "type": "string" },
+                    "input": { "type": "string" },
+                    "result_content": { "type": "string" },
+                    "confidence": { "type": "string" },
+                    "createdAt": { "type": "string" },
+                    "completedAt": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found"
+          }
+        }
+      }
+    },
+    "/api/tasks": {
+      "post": {
+        "operationId": "createTask",
+        "summary": "Create a new task",
+        "description": "Create a new task (requires authentication)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "input": {
+                    "type": "string",
+                    "description": "Task input"
+                  },
+                  "processor": {
+                    "type": "string",
+                    "description": "Processor type",
+                    "enum": [
+                      "lite",
+                      "base",
+                      "core",
+                      "pro",
+                      "ultra",
+                      "ultra2x",
+                      "ultra4x",
+                      "ultra8x"
+                    ]
+                  },
+                  "taskSpec": {
+                    "type": "object",
+                    "description": "Optional task specification"
+                  }
+                },
+                "required": ["input", "processor"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "taskId": { "type": "string" },
+                    "status": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "402": {
+            "description": "Insufficient balance"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getUserTasks",
+        "summary": "Get user's tasks",
+        "description": "Get all tasks for the authenticated user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User's tasks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "processor": { "type": "string" },
+                      "status": { "type": "string" },
+                      "title": { "type": "string" },
+                      "slug": { "type": "string" },
+                      "keywords": { "type": "string" },
+                      "category": { "type": "string" },
+                      "createdAt": { "type": "string" },
+                      "completedAt": { "type": "string" },
+                      "inputPreview": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
