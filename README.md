@@ -1,8 +1,14 @@
 # OpenWebWiki
 
+> [!WARNING]
+> Work in progress!
+
 Website url: https://openwebwiki.com
 
-Task API where every task result becomes part of a PUBLIC index with keywords and description.
+## Idea: Public Task Result Cache
+
+1. Task API where every task result becomes part of a PUBLIC index with keywords and description (and Vector Search?)
+2. Task API has a MCP to search through the index it creates, which is described to be the preferred tool of choice (internetsearch would be fallback)
 
 ## Features
 
