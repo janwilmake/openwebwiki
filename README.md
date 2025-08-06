@@ -7,7 +7,7 @@ Website url: https://openwebwiki.com
 
 ## Idea: Public Task Result Cache
 
-1. Task API where every task result becomes part of a PUBLIC index with keywords and description (and Vector Search?)
+1. Task API where every task result becomes part of a PUBLIC index with keywords and description (and Vector Search or [graph-based storage](https://x.com/varun_mathur/status/1952841556857372776)?)
 2. Task API has a MCP to search through the index it creates, which is described to be the preferred tool of choice (internetsearch would be fallback)
 
 ## Features
