@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>parallel task manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --text-tertiary: #888888;
+            --border: #e5e5e5;
+            --brand-orange: #ff6b35;
+            --tooltip-bg: #1a1a1a;
+            --tooltip-text: #ffffff;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #1a1a1a;
+                --bg-secondary: #2a2a2a;
+                --text-primary: #ffffff;
+                --text-secondary: #cccccc;
+                --text-tertiary: #888888;
+                --border: #333333;
+                --tooltip-bg: #ffffff;
+                --tooltip-text: #1a1a1a;
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand {
+            font-family: Impact, 'Arial Black', sans-serif;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: lowercase;
+        }
+
+        .main {
+            flex: 1;
+            padding: 32px 24px;
+        }
+
+        .section {
+            margin-bottom: 48px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        .form {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        input,
+        textarea {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 12px;
+            font-size: 14px;
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--text-secondary);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .task-spec {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            min-height: 120px;
+        }
+
+        /* Custom styled select */
+        .select-wrapper {
+            position: relative;
+        }
+
+        .custom-select {
+            appearance: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 12px 40px 12px 12px;
+            font-size: 14px;
+            color: var(--text-primary);
+            font-family: inherit;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .custom-select:focus {
+            outline: none;
+            border-color: var(--text-secondary);
+        }
+
+        .select-arrow {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: var(--text-secondary);
+        }
+
+        .processor-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .processor-help {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--text-tertiary);
+            color: var(--bg-primary);
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: help;
+            position: relative;
+        }
+
+        .processor-tooltip {
+            position: absolute;
+            bottom: 150%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--tooltip-bg);
+            color: var(--tooltip-text);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: nowrap;
+            max-width: 320px;
+            white-space: normal;
+            width: max-content;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .processor-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: var(--tooltip-bg);
+        }
+
+        .processor-help:hover .processor-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .checkbox input {
+            width: auto;
+            margin: 0;
+        }
+
+        .checkbox label {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .btn {
+            background: var(--brand-orange);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .tasks-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .table {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--border);
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        tbody tr:hover {
+            background: var(--border);
+            cursor: pointer;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status {
+            display: inline-flex;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status.pending {
+            background: #4a3728;
+            color: #f59e0b;
+        }
+
+        .status.queued {
+            background: #4a3728;
+            color: #f59e0b;
+        }
+
+        .status.running {
+            background: #1e3a8a;
+            color: #60a5fa;
+        }
+
+        .status.completed {
+            background: #064e3b;
+            color: #10b981;
+        }
+
+        .status.failed {
+            background: #7f1d1d;
+            color: #f87171;
+        }
+
+        .input-preview {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        .footer {
+            padding: 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toggle {
+            display: flex;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .toggle-option {
+            padding: 8px 16px;
+            background: none;
+            border: none;
+            color: var(--text-tertiary);
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .toggle-option.active {
+            background: var(--brand-orange);
+            color: white;
+        }
+
+        .toggle-option:not(.active):hover {
+            color: var(--text-secondary);
+        }
+
+        .api-link {
+            color: var(--text-tertiary);
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .api-link:hover {
+            color: var(--text-secondary);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .main {
+                padding: 24px 16px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .tasks-header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+
+            .table {
+                overflow-x: auto;
+            }
+
+            .footer {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .processor-tooltip {
+                position: fixed;
+                bottom: auto;
+                left: 50%;
+                transform: translateX(-50%);
+                max-width: 280px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="brand">parallel task manager</div>
+        </header>
+
+        <main class="main">
+            <section class="section">
+                <h2 class="section-title">Create Task</h2>
+                <form id="taskForm" class="form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="apiKey">API Key</label>
+                            <input type="password" id="apiKey" name="apiKey" required
+                                placeholder="Enter your Parallel API key">
+                        </div>
+                        <div class="form-group">
+                            <div class="processor-info">
+                                <label for="processor">Processor</label>
+                                <div class="processor-help">
+                                    ?
+                                    <div class="processor-tooltip">
+                                        Choose based on task complexity:<br>
+                                        <strong>Lite/Base:</strong> Simple enrichments<br>
+                                        <strong>Core:</strong> Reliable accuracy, ~10 fields<br>
+                                        <strong>Pro/Ultra:</strong> Deep research & reasoning
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="select-wrapper">
+                                <select id="processor" name="processor" class="custom-select" required>
+                                    <option value="lite">Lite - Basic metadata, low latency (5-45s, $5/1k)</option>
+                                    <option value="base" selected>Base - Standard enrichments (10-80s, $10/1k)</option>
+                                    <option value="core">Core - Cross-referenced research (45-160s, $25/1k)</option>
+                                    <option value="pro">Pro - Exploratory web research (60s-8min, $100/1k)</option>
+                                    <option value="ultra">Ultra - Multi-source deep research (5-12min, $300/1k)</option>
+                                    <option value="ultra2x">Ultra2x - Difficult deep research (8-15min, $600/1k)
+                                    </option>
+                                    <option value="ultra4x">Ultra4x - Very difficult research (8-20min, $1200/1k)
+                                    </option>
+                                    <option value="ultra8x">Ultra8x - Most difficult research (8-20min, $2400/1k)
+                                    </option>
+                                </select>
+                                <span class="select-arrow">▼</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="input">Input</label>
+                        <textarea id="input" name="input" required placeholder="Enter your task input..."></textarea>
+                    </div>
+
+                    <div class="checkbox">
+                        <input type="checkbox" id="useTaskSpec" name="useTaskSpec">
+                        <label for="useTaskSpec">Use task specification</label>
+                    </div>
+
+                    <div class="form-group hidden" id="taskSpecGroup">
+                        <label for="taskSpec">Task Specification (JSON)</label>
+                        <textarea id="taskSpec" name="taskSpec" class="task-spec"
+                            placeholder='{"output_schema": {"type": "json", "json_schema": {...}}}'></textarea>
+                    </div>
+
+                    <button type="submit" class="btn">Create Task</button>
+                </form>
+            </section>
+
+            <section class="section">
+                <div class="tasks-header">
+                    <h2 class="section-title">Tasks</h2>
+                    <button type="button" class="btn btn-secondary" onclick="loadTasks()">Refresh</button>
+                </div>
+
+                <div class="table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Processor</th>
+                                <th>Status</th>
+                                <th>Input</th>
+                                <th>Created</th>
+                                <th>Completed</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasksBody">
+                            <!-- Tasks will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="toggle">
+                <span class="toggle-option active">HUMAN</span>
+                <a href="/README.md" class="toggle-option" target="_blank">MACHINE</a>
+            </div>
+            <a href="/README.md" class="api-link">API Documentation</a>
+        </footer>
+    </div>
+
+    <script>
+        // Form persistence
+        function loadFormData() {
+            const data = JSON.parse(localStorage.getItem('taskFormData') || '{}');
+            Object.entries(data).forEach(([key, value]) => {
+                const el = document.getElementById(key);
+                if (!el) return;
+                if (el.type === 'checkbox') el.checked = value;
+                else el.value = value;
+            });
+            toggleTaskSpec();
+        }
+
+        function saveFormData() {
+            const data = {};
+            ['apiKey', 'processor', 'input', 'taskSpec'].forEach(id => {
+                data[id] = document.getElementById(id).value;
+            });
+            data.useTaskSpec = document.getElementById('useTaskSpec').checked;
+            localStorage.setItem('taskFormData', JSON.stringify(data));
+        }
+
+        function toggleTaskSpec() {
+            const show = document.getElementById('useTaskSpec').checked;
+            document.getElementById('taskSpecGroup').classList.toggle('hidden', !show);
+        }
+
+        // Event listeners
+        document.getElementById('useTaskSpec').addEventListener('change', toggleTaskSpec);
+        document.querySelectorAll('#taskForm input, #taskForm select, #taskForm textarea')
+            .forEach(el => el.addEventListener('input', saveFormData));
+
+        // Form submission
+        document.getElementById('taskForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            btn.disabled = true;
+            btn.textContent = 'Creating...';
+
+            // Get values directly from elements instead of using FormData
+            const taskData = {
+                apiKey: document.getElementById('apiKey').value,
+                processor: document.getElementById('processor').value,
+                input: document.getElementById('input').value,
+                enable_events: true  // Always enable events for SSE
+            };
+
+            if (document.getElementById('useTaskSpec').checked && document.getElementById('taskSpec').value.trim()) {
+                try {
+                    taskData.taskSpec = JSON.parse(document.getElementById('taskSpec').value);
+                } catch (error) {
+                    alert('Invalid JSON in task specification');
+                    btn.disabled = false;
+                    btn.textContent = 'Create Task';
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch('/api/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(taskData)
+                });
+
+                if (response.ok) {
+                    loadTasks();
+                    // Clear input after successful creation
+                    document.getElementById('input').value = '';
+                    saveFormData();
+                } else {
+                    alert(`Error: ${await response.text()}`);
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create Task';
+            }
+        });
+
+        // Load tasks
+        async function loadTasks() {
+            try {
+                const response = await fetch('/api/tasks');
+                const tasks = await response.json();
+                const tbody = document.getElementById('tasksBody');
+
+                tbody.innerHTML = tasks.map(task => `
+                    <tr onclick="window.open('/task/${task.id}', '_blank')">
+                        <td>${task.id.substring(0, 8)}...</td>
+                        <td>${task.processor}</td>
+                        <td><span class="status ${task.status}">${task.status}</span></td>
+                        <td class="input-preview">${task.inputPreview}</td>
+                        <td>${new Date(task.createdAt).toLocaleString()}</td>
+                        <td>${task.completedAt ? new Date(task.completedAt).toLocaleString() : '—'}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+            }
+        }
+
+        // Initialize
+        loadFormData();
+        loadTasks();
+        setInterval(loadTasks, 10000);
+    </script>
+</body>
+
+</html>

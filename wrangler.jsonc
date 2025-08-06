@@ -1,0 +1,21 @@
+{
+  "$schema": "https://unpkg.com/wrangler@latest/config-schema.json",
+  "name": "openwebwiki",
+  "main": "worker.ts",
+  "compatibility_date": "2025-07-14",
+  "assets": { "directory": "./" },
+  "observability": { "logs": { "enabled": true } },
+  "durable_objects": {
+    "bindings": [
+      { "name": "TASK_MANAGER", "class_name": "TaskManager" },
+      { "name": "TASK_RUNNER", "class_name": "TaskRunner" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["TaskManager", "TaskRunner"] }
+  ],
+  "routes": [
+    { "custom_domain": true, "pattern": "openwebwiki.com" },
+    { "custom_domain": true, "pattern": "www.openwebwiki.com" }
+  ]
+}
